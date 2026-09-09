@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GymOS - Multi-gym owner console (prototype)
 
-## Getting Started
+A polished prototype CRM that runs **every gym branch from one place** and turns the
+numbers into owner value: cash visibility, churn warnings and cross-branch comparison.
 
-First, run the development server:
+Built with Next.js (App Router, Server Actions) + React + Tailwind CSS, with a
+zero-config JSON file store (auto-seeds demo data on first run). No database needed.
+
+## Run it
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev     # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+First launch seeds data/db.json with 2 gyms, 10 members and 30+ days of check-in history.
+The root redirects to /dashboard.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Owner benefits (what's actually useful)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Page      | What the owner gets |
+|-----------|---------------------|
+| /dashboard| KPIs, owner strip (MRR, ARR, renewals due in 30d, members at risk), revenue chart, live "Now in the gym", 1-click renew |
+| /reports  | Owner intelligence: MRR/ARR, renewal pipeline, expired count, branch-vs-branch comparison table (members, check-ins, MRR, capacity utilization) and an at-risk revenue list |
+| /billing  | Expect-to-collect total, paid-up members, and a "Renewals due" list with one-tap renew |
+| /members  | Search/filter members, status badges, quick check-in, add-member form |
 
-## Learn More
+Key signals an owner can act on:
+- **Monthly recurring revenue (MRR / ARR)** - computed from active memberships by plan period.
+- **Renewal pipeline** - total value of memberships ending within 30 days = money to go collect.
+- **Members at risk** - paying members whoseThe root redirects to /dashboard.
 
-To learn more about Next.js, take a look at the following resources:
+## Owner benefits (what's actually useful)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| ew button is one tap away.
+- **Branch comparison** - spot your best and weakest gym by MRR, today's footfall and capacity utilization.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Live interactions (Server Actions -> file store): check in (deduped, blocks expired),
+renew (+1/+3/+6 months), add member. Everything re-renders via router.refresh() so
+counts update instantly.
 
-## Deploy on Vercel
+## Design
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Follows taste rules from emilkowalski/skills, Leonxlnx/taste-skill and pbakaus/impeccable -
+neutral palette, single indigo accent, soft layere| /members  | Search/filter members, status badges, quick check-in, add-member fients, no bounce easing.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Stack notes
+
+- Next.js 16 (Turbopack) + Server Actions for mutations.
+- lib/seed.ts (types, date helpers, demo seed), lib/store.ts (file-backed store),
+  lib/analytics.ts (pure owner-intelligence math), lib/actions.ts (Server Actions).
+- Client components import pure helpers from lib/seed/analytics only (keeps node:fs server-side).
+- Runtime data lives in data/ (gitignored) - delete it to re-seed.
+
+## Structure
+
+```
+app/        dashboard, members, billing, reports + layout + globals.css
+components/ Sidebar, StatCard, RevenueChart, Badge, MembersGrid, CheckinButton,
+            AddMemberForm, RenewButton, NowInGym, NeedsAttention, KpiCards,
+            OwnerInsightStrip, GymComparison, AtRiskList
+lib/        seed.ts, store.ts, analytics.ts, actions.ts
+data/       db.json (runtime data, gitignored)
+```
