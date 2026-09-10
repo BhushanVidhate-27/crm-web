@@ -1,120 +1,209 @@
-import { formatINR } from "@/lib/store";
+"use client";
 
-function computeGrowth(data: { month: string; amount: number }[]): number | null {
+import { useState } from "react";
+import { formatINR, type RevenuePoint } from "@/lib/seed";
+
+type Scope = "all" | "g1" | "g2";
+
+const SCOPES: { id: Scope; label: string }[] = [
+  { id: "all", label: "All branches" },
+  { id: "g1", label: "Jatra Hotel" },
+  { id: "g2", label: "Adgaon" },
+];
+
+function amountOf(d: RevenuePoint, scope: Scope): number {
+  return scope === "all" ? d.amount : d[scope];
+}
+
+function computeGrowth(data: RevenuePoint[], scope: Scope): number | null {
   if (data.length < 2) return null;
-  const prev = data[data.length - 2].amount;
-  const curr = data[data.length - 1].amount;
+  const prev = amountOf(data[data.length - 2], scope);
+  const curr = amountOf(data[data.length - 1], scope);
   if (prev === 0) return null;
   return ((curr - prev) / prev) * 100;
 }
 
-/* Nice round baseline just below the lowest value, so month-to-month
-   changes aren't squashed against a zero baseline (the "flat" look).
-   The y-axis labels keep the truncation honest. */
-function chartFloor(min: number): number {
-  return Math.floor((min * 0.9) / 10000) * 10000;
+/* Round y-axis top so gridlines land on clean numbers (e.g. 150k, not 139.2k). */
+function niceCeil(v: number): number {
+  const pow = Math.pow(10, Math.floor(Math.log10(Math.max(v, 1))));
+  return Math.ceil(v / (pow / 2)) * (pow / 2);
 }
 
-function gridLines(floor: number, max: number, count = 4): number[] {
-  const step = Math.ceil((max - floor) / count / 1000) * 1000;
-  const lines: number[] = [];
-  for (let v = floor + step; v < max; v += step) lines.push(v);
-  return lines;
-}
+const W = 640; // svg viewBox width
+const H = 260; // svg viewBox height
+const PAD = { top: 24, right: 12, bottom: 28, left: 48 };
 
-export function RevenueChart({ data }: { data: { month: string; amount: number }[] }) {
-  const max = data.length ? Math.max(...data.map((d) => d.amount)) : 0;
-  const min = data.length ? Math.min(...data.map((d) => d.amount)) : 0;
-  const floor = data.length > 1 ? chartFloor(min) : 0;
-  const range = max - floor;
-  const growth = computeGrowth(data);
-  const total = data.reduce((s, d) => s + d.amount, 0);
+export function RevenueChart({ data }: { data: RevenuePoint[] }) {
+  const [scope, setScope] = useState<Scope>("all");
+  const [openMonth, setOpenMonth] = useState<string | null>(null);
+
+  const values = data.map((d) => amountOf(d, scope));
+  const max = data.length ? niceCeil(Math.max(...values)) : 1;
+  const total = values.reduce((s, v) => s + v, 0);
+  const growth = computeGrowth(data, scope);
+  const selected = data.find((d) => d.month === openMonth) ?? null;
+
+  const innerW = W - PAD.left - PAD.right;
+  const innerH = H - PAD.top - PAD.bottom;
+  const slot = innerW / Math.max(data.length, 1);
+  const barW = slot * 0.55;
+  const yOf = (v: number) => PAD.top + innerH - (v / max) * innerH;
+
+  const gridVals = [0, 0.25, 0.5, 0.75, 1].map((f) => f * max);
+  const fmtK = (v: number) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(v));
+
+  const chip = (active: boolean) =>
+    `rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset transition-colors duration-150 cursor-pointer ${
+      active
+        ? "bg-indigo-600 text-white ring-indigo-600"
+        : "bg-white text-neutral-500 ring-black/[0.08] hover:bg-neutral-50 hover:text-neutral-800"
+    }`;
 
   return (
     <div className="card p-5">
-      <div className="mb-5 flex items-end justify-between">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-[15px] font-semibold tracking-tight text-neutral-900">Monthly revenue</p>
           <p className="text-[13px] text-neutral-500">Collection across all gyms</p>
         </div>
-        <div className="flex items-center gap-3">
-          {data.length > 0 && (
-            <span className="text-[12px] text-neutral-400 tabular-nums">Total {formatINR(total)}</span>
-          )}
-          {growth !== null && (
-            <p className={`text-[13px] font-semibold ${growth >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-              {growth >= 0 ? "+" : ""}{growth.toFixed(1)}% vs last
-            </p>
-          )}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex gap-1.5">
+            {SCOPES.map((s) => (
+              <button key={s.id} type="button" onClick={() => setScope(s.id)} className={chip(scope === s.id)}>
+                {s.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
+      <div className="mb-3 flex items-center gap-3">
+        {data.length > 0 && (
+          <span className="text-[12px] text-neutral-400 tabular-nums">Total {formatINR(total)}</span>
+        )}
+        {growth !== null && (
+          <p className={`text-[13px] font-semibold ${growth >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+            {growth >= 0 ? "+" : ""}
+            {growth.toFixed(1)}% vs last
+          </p>
+        )}
+      </div>
+
       {data.length === 0 ? (
-        <div className="flex h-44 items-center justify-center text-[13px] text-neutral-400">
-          No revenue data yet
-        </div>
+        <div className="flex h-44 items-center justify-center text-[13px] text-neutral-400">No revenue data yet</div>
       ) : (
-        <div className="flex h-44 gap-3">
-          {/* Y-axis labels + gridlines */}
-          <div className="relative flex w-12 flex-col justify-between py-5 text-right">
-            {(() => {
-              const lines = gridLines(floor, max);
+        <>
+          <svg
+            viewBox={`0 0 ${W} ${H}`}
+            className="h-56 w-full"
+            preserveAspectRatio="none"
+            role="img"
+            aria-label="Monthly revenue bar chart"
+          >
+            <defs>
+              <linearGradient id="bar-active" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#818cf8" />
+                <stop offset="100%" stopColor="#4f46e5" />
+              </linearGradient>
+            </defs>
+
+            {/* Gridlines + y-axis labels */}
+            {gridVals.map((v) => (
+              <g key={v}>
+                <line
+                  x1={PAD.left}
+                  x2={W - PAD.right}
+                  y1={yOf(v)}
+                  y2={yOf(v)}
+                  stroke="rgb(0 0 0 / 0.06)"
+                  strokeWidth="1"
+                />
+                <text x={PAD.left - 8} y={yOf(v) + 3.5} textAnchor="end" fontSize="10" fill="#a3a3a3">
+                  {fmtK(v)}
+                </text>
+              </g>
+            ))}
+
+            {/* Bars: click a month bar to open its breakdown */}
+            {data.map((d, i) => {
+              const v = amountOf(d, scope);
+              const x = PAD.left + i * slot + (slot - barW) / 2;
+              const y = yOf(v);
+              const h = Math.max(PAD.top + innerH - y, 2);
+              const isOpen = openMonth === d.month;
+              const isLast = i === data.length - 1;
               return (
-                <>
-                  {[max, ...lines, floor].map((v, i) => (
-                    <span key={i} className="text-[10px] tabular-nums text-neutral-300">
-                      {v >= 1000 ? `${Math.round(v / 1000)}k` : v}
-                    </span>
-                  ))}
-                </>
+                <g
+                  key={d.month}
+                  onClick={() => setOpenMonth(isOpen ? null : d.month)}
+                  className="cursor-pointer"
+                >
+                  {/* full-height hit area so even the empty space above a short bar is clickable */}
+                  <rect x={PAD.left + i * slot} y={PAD.top} width={slot} height={innerH} fill="transparent" />
+                  <rect
+                    x={x}
+                    y={y}
+                    width={barW}
+                    height={h}
+                    rx="6"
+                    fill={isOpen || (isLast && !openMonth) ? "url(#bar-active)" : "#dce0ee"}
+                    className="transition-opacity hover:opacity-80"
+                  >
+                    <title>{`${d.month}: ${formatINR(v)} — click for breakdown`}</title>
+                  </rect>
+                  <text
+                    x={x + barW / 2}
+                    y={H - 8}
+                    textAnchor="middle"
+                    fontSize="11"
+                    fontWeight={isOpen ? "700" : "500"}
+                    fill={isOpen ? "#4f46e5" : "#a3a3a3"}
+                  >
+                    {d.month}
+                  </text>
+                </g>
               );
-            })()}
-          </div>
+            })}
+          </svg>
 
-          {/* Chart area */}
-          <div className="relative flex-1">
-            {/* Horizontal gridlines */}
-            <div className="pointer-events-none absolute inset-0 flex flex-col justify-between py-5">
-              {(() => {
-                const lines = gridLines(floor, max);
-                return (
-                  <>
-                    {[max, ...lines, floor].map((_, i) => (
-                      <div key={i} className="border-t border-neutral-100" />
-                    ))}
-                  </>
-                );
-              })()}
+          {/* Month breakdown panel */}
+          {selected && (
+            <div className="animate-pop mt-3 rounded-xl border border-indigo-600/15 bg-indigo-50/50 p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-[14px] font-semibold tracking-tight text-neutral-900">
+                  {selected.month} revenue
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setOpenMonth(null)}
+                  className="text-[12px] font-medium text-neutral-400 transition-colors hover:text-neutral-700"
+                >
+                  Close
+                </button>
+              </div>
+              <p className="mt-1 text-[22px] font-semibold tracking-tight text-indigo-700">
+                {formatINR(amountOf(selected, scope))}
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="rounded-lg bg-white px-3 py-2.5 ring-1 ring-inset ring-black/[0.05]">
+                  <p className="text-[11px] font-medium text-neutral-400">Jatra Hotel</p>
+                  <p className="text-[15px] font-semibold tabular-nums text-neutral-900">{formatINR(selected.g1)}</p>
+                </div>
+                <div className="rounded-lg bg-white px-3 py-2.5 ring-1 ring-inset ring-black/[0.05]">
+                  <p className="text-[11px] font-medium text-neutral-400">Adgaon</p>
+                  <p className="text-[15px] font-semibold tabular-nums text-neutral-900">{formatINR(selected.g2)}</p>
+                </div>
+              </div>
+              <p className="mt-2 text-[11px] text-neutral-400">
+                {selected.g1 > selected.g2
+                  ? `Jatra Hotel led by ${formatINR(selected.g1 - selected.g2)} this month.`
+                  : selected.g2 > selected.g1
+                    ? `Adgaon led by ${formatINR(selected.g2 - selected.g1)} this month.`
+                    : "Both branches collected equally."}
+              </p>
             </div>
-
-            {/* Bars */}
-            <div className="relative flex h-full items-end gap-3 py-5">
-              {data.map((d, i) => {
-                const h = range > 0 ? ((d.amount - floor) / range) * 100 : 100;
-                const isLast = i === data.length - 1;
-                return (
-                  <div key={d.month} className="group flex flex-1 flex-col items-center gap-2">
-                    <span className="text-[10px] font-semibold text-neutral-400 opacity-0 transition-opacity group-hover:opacity-100">
-                      {formatINR(d.amount)}
-                    </span>
-                    <div
-                      className="w-full rounded-lg animate-rise"
-                      style={{
-                        height: `${Math.max(h, 4)}%`,
-                        minHeight: 12,
-                        background: isLast
-                          ? "linear-gradient(180deg,#6366f1,#4f46e5)"
-                          : "#dce0ee",
-                        animationDelay: `${i * 55}ms`,
-                      }}
-                    />
-                    <span className="text-[11px] font-medium text-neutral-400">{d.month}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+          )}
+        </>
       )}
     </div>
   );

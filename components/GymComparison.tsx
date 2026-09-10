@@ -1,15 +1,6 @@
 import { formatINR } from "@/lib/seed";
 import type { GymStat } from "@/lib/analytics";
 
-function UtilizationBar({ pct }: { pct: number }) {
-  const color = pct >= 85 ? "bg-amber-500" : pct >= 60 ? "bg-indigo-500" : "bg-emerald-500";
-  return (
-    <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100">
-      <div className={`h-full rounded-full ${color} transition-all`} style={{ width: `${pct}%` }} />
-    </div>
-  );
-}
-
 export function GymComparison({ stats }: { stats: GymStat[] }) {
   const maxMembers = Math.max(...stats.map((s) => s.members), 1);
   return (
@@ -31,7 +22,6 @@ export function GymComparison({ stats }: { stats: GymStat[] }) {
               <th className="px-3 py-2.5 font-semibold">Check-ins today</th>
               <th className="px-3 py-2.5 font-semibold">MRR</th>
               <th className="px-3 py-2.5 font-semibold">Expiring</th>
-              <th className="px-5 py-2.5 font-semibold">Capacity</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-black/[0.05]">
@@ -62,14 +52,6 @@ export function GymComparison({ stats }: { stats: GymStat[] }) {
                   <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${s.expiring > 0 ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
                     {s.expiring}
                   </span>
-                </td>
-                <td className="px-5 py-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-20">
-                      <UtilizationBar pct={s.utilization} />
-                    </div>
-                    <span className="text-[11px] font-medium tabular-nums text-neutral-500">{s.utilization}%</span>
-                  </div>
                 </td>
               </tr>
             ))}

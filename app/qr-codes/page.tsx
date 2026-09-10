@@ -42,7 +42,6 @@ export default async function QrCodesPage() {
               </div>
               <div>
                 <p className="text-[15px] font-semibold tracking-tight text-neutral-900">{gym.name}</p>
-                <p className="text-[12px] text-neutral-400">{gym.location}</p>
               </div>
             </div>
 

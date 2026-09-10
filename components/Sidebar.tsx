@@ -9,7 +9,7 @@ const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: "grid" },
   { href: "/members", label: "Members", icon: "users" },
   { href: "/qr-codes", label: "Gym QR", icon: "qr" },
-  { href: "/reports", label: "Owner Intel", icon: "chart" },
+  { href: "/reports", label: "Revenue Statistics", icon: "chart" },
   { href: "/billing", label: "Billing", icon: "card" },
   { href: "/notifications", label: "Gym Pass Alerts", icon: "bell" },
 ];
@@ -67,15 +67,14 @@ export function Sidebar({ gyms, activeGymId }: { gyms: Gym[]; activeGymId: strin
 
   return (
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-black/[0.06] bg-white/80 px-4 py-6 backdrop-blur md:flex">
-      <div className="flex items-center gap-2.5 px-2">
+      <Link href="/dashboard" className="flex items-center gap-2.5 px-2 transition-opacity duration-150 hover:opacity-80">
         <div className="grid h-9 w-9 place-items-center rounded-xl bg-indigo-600 text-sm font-bold text-white shadow-sm">
-          G
+          M
         </div>
         <div className="leading-tight">
           <p className="text-[15px] font-semibold tracking-tight text-neutral-900">MadabolicX</p>
-          <p className="text-[11px] text-neutral-500">Owner console</p>
         </div>
-      </div>
+      </Link>
 
       <nav className="mt-8 flex flex-col gap-1">
         {NAV.map((item) => {
@@ -133,7 +132,6 @@ export function Sidebar({ gyms, activeGymId }: { gyms: Gym[]; activeGymId: strin
                   </div>
                   <div className="min-w-0 leading-tight">
                     <p className="truncate text-[13px] font-semibold text-neutral-800">{g.name}</p>
-                    <p className="truncate text-[11px] text-neutral-400">{g.location}</p>
                   </div>
                 </button>
               </form>

@@ -7,6 +7,7 @@ import {
 import { StatCard } from "@/components/StatCard";
 import { GymComparison } from "@/components/GymComparison";
 import { AtRiskList } from "@/components/AtRiskList";
+import { YearlyIncomeChart } from "@/components/YearlyIncomeChart";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ export default function ReportsPage() {
   const members = store.members();
   const checkins = store.db.checkins;
   const gyms = store.gyms();
+  const revenue = store.revenue();
   const today = toISODate(new Date());
 
   const insights = computeOwnerInsights(members, checkins, gyms);
@@ -21,12 +23,24 @@ export default function ReportsPage() {
   const atRisk = computeAtRisk(members, checkins);
   const expiredCount = members.filter((m) => memberStatus(m.endDate) === "expired").length;
 
+  /* --- Past income: monthly + yearly ----------------------------------- */
+  const thisYear = new Date().getFullYear();
+  const yearTotal = revenue.reduce((s, r) => s + r.amount, 0);
+  const bestMonth = revenue.reduce<null | (typeof revenue)[number]>(
+    (best, r) => (!best || r.amount > best.amount ? r : best),
+    null
+  );
+  const avgMonth = revenue.length ? Math.round(yearTotal / revenue.length) : 0;
+  const lastMonth = revenue.length >= 2 ? revenue[revenue.length - 2].amount : null;
+  const thisMonth = revenue.length ? revenue[revenue.length - 1].amount : 0;
+  const momGrowth = lastMonth && lastMonth > 0 ? ((thisMonth - lastMonth) / lastMonth) * 100 : null;
+
   return (
     <div className="animate-fade">
       <header className="mb-7">
-        <h1 className="text-[26px] font-semibold tracking-tight text-neutral-900">Owner intelligence</h1>
+        <h1 className="text-[26px] font-semibold tracking-tight text-neutral-900">Revenue statistics</h1>
         <p className="mt-1 text-[14px] text-neutral-500">
-          The numbers that matter most to your business - turned into action.
+          Your past income, month by month and year over year - turned into action.
         </p>
       </header>
 
@@ -79,6 +93,63 @@ export default function ReportsPage() {
             </svg>
           }
         />
+      </section>
+
+      {/* --- Past income: this month, best month, year total --- */}
+      <section className="mt-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <StatCard
+          index={0}
+          label={`Income · ${revenue[revenue.length - 1]?.month ?? "this month"}`}
+          value={formatINR(thisMonth)}
+          hint={momGrowth === null ? "collection so far" : `${momGrowth >= 0 ? "+" : ""}${momGrowth.toFixed(1)}% vs last month`}
+          tone={momGrowth !== null && momGrowth < 0 ? "rose" : "green"}
+          icon={
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+              <path d="M12 2v20M17 7H9.5a2.5 2.5 0 0 0 0 5h5a2.5 2.5 0 0 1 0 5H7" strokeLinecap="round" />
+            </svg>
+          }
+        />
+        <StatCard
+          index={1}
+          label="Average monthly income"
+          value={formatINR(avgMonth)}
+          hint={`across ${revenue.length} tracked months`}
+          tone="indigo"
+          icon={
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+              <path d="M4 19V5M4 19h16" /><path d="M8 15l3.5-4 3 2.5L18 8" />
+            </svg>
+          }
+        />
+        <StatCard
+          index={2}
+          label="Best month"
+          value={bestMonth ? formatINR(bestMonth.amount) : "—"}
+          hint={bestMonth ? `${bestMonth.month} — your peak so far` : "no data yet"}
+          tone="amber"
+          icon={
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+              <path d="M8 21h8M12 17v4" strokeLinecap="round" /><path d="M7 4h10v5a5 5 0 0 1-10 0Z" /><path d="M7 6H4.5a2.5 2.5 0 0 0 2.5 5M17 6h2.5a2.5 2.5 0 0 1-2.5 5" />
+            </svg>
+          }
+        />
+        <StatCard
+          index={3}
+          label={`Total income · ${thisYear}`}
+          value={formatINR(yearTotal)}
+          hint="all branches combined"
+          tone="default"
+          icon={
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+              <rect x="3" y="5.5" width="18" height="13" rx="2.5" /><path d="M3 10h18M7 15h3" />
+            </svg>
+          }
+        />
+      </section>
+
+      {/* --- Yearly past income, per year + per branch --- */}
+      <section className="mt-6">
+        <YearlyIncomeChart revenue={revenue} year={thisYear} />
       </section>
 
       <section className="mt-6 grid gap-6 lg:grid-cols-[1.5fr_1fr]">

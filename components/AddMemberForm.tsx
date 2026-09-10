@@ -7,12 +7,41 @@ import { type Gym } from "@/lib/store";
 
 const PLANS = ["Monthly", "Quarterly", "Half-Yearly", "Yearly", "Daily Pass", "PT + Monthly"];
 
+/* How many months each plan lasts (0 = pass, priced per day). */
+const PLAN_MONTHS: Record<string, number> = {
+  "Monthly": 1,
+  "Quarterly": 3,
+  "Half-Yearly": 6,
+  "Yearly": 12,
+  "PT + Monthly": 1,
+  "Daily Pass": 0,
+};
+
+function toISODate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/* End date = start date + plan length. Mirrors the renew logic in
+   lib/store.ts: calendar months, clamping overflow days (31 Mar + 1mo -> 30 Apr). */
+function computeEndDate(plan: string, startDate: string): string | null {
+  const months = PLAN_MONTHS[plan] ?? 0;
+  if (!startDate || months <= 0) return null;
+  const [y, m, d] = startDate.split("-").map(Number);
+  const end = new Date(y, m - 1 + months, d);
+  return toISODate(end);
+}
+
 export function AddMemberForm({ gyms }: { gyms: Gym[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<ActionResult | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const [endDate, setEndDate] = useState("");
+  const [autoFilled, setAutoFilled] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -25,7 +54,19 @@ export function AddMemberForm({ gyms }: { gyms: Gym[] }) {
     router.refresh();
     if (res.ok && formRef.current) {
       formRef.current.reset();
+      setEndDate("");
+      setAutoFilled(false);
       setOpen(false);
+    }
+  }
+
+  /* Re-compute the end date whenever plan or start date changes. */
+  function syncEndDate(form: HTMLFormElement) {
+    const fd = new FormData(form);
+    const end = computeEndDate(String(fd.get("plan") ?? ""), String(fd.get("startDate") ?? ""));
+    if (end) {
+      setEndDate(end);
+      setAutoFilled(true);
     }
   }
 
@@ -56,7 +97,12 @@ export function AddMemberForm({ gyms }: { gyms: Gym[] }) {
             </button>
           </div>
 
-          <form ref={formRef} onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
+          <form
+            ref={formRef}
+            onSubmit={onSubmit}
+            onChange={(e) => syncEndDate(e.currentTarget)}
+            className="grid gap-4 sm:grid-cols-2"
+          >
             <div>
               <label className="label">Full name *</label>
               <input name="name" required className="field" placeholder="e.g. Aarav Gupta" />
@@ -66,7 +112,7 @@ export function AddMemberForm({ gyms }: { gyms: Gym[] }) {
               <select name="gymId" className="field">
                 {gyms.map((g) => (
                   <option key={g.id} value={g.id}>
-                    {g.name} — {g.location}
+                    {g.name}
                   </option>
                 ))}
               </select>
@@ -97,7 +143,22 @@ export function AddMemberForm({ gyms }: { gyms: Gym[] }) {
             </div>
             <div>
               <label className="label">End date *</label>
-              <input name="endDate" type="date" required className="field" />
+              <input
+                name="endDate"
+                type="date"
+                required
+                className="field"
+                value={endDate}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  setAutoFilled(false);
+                }}
+              />
+              {autoFilled && (
+                <p className="mt-1 text-[11px] font-medium text-emerald-600">
+                  Auto-filled from plan length — edit it if needed.
+                </p>
+              )}
             </div>
 
             <div className="flex items-center gap-3 sm:col-span-2">

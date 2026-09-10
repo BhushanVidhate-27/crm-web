@@ -25,7 +25,26 @@ class Store {
     ensureFile();
     this.db = JSON.parse(fs.readFileSync(DB_PATH, "utf-8")) as DB;
     if (!Array.isArray(this.db.notifications)) this.db.notifications = []; // migration for pre-notification data files
+    this.migrateRevenue(); // migration for pre-branch-split revenue data files
     this.save();
+  }
+
+  /* Older data files have revenue points without per-branch g1/g2 splits.
+     Backfill them (evenly) so branch-scoped charts always have numbers. */
+  private migrateRevenue() {
+    if (!Array.isArray(this.db.revenue)) return;
+    let changed = false;
+    for (const r of this.db.revenue) {
+      if (typeof r.g1 !== "number") {
+        r.g1 = Math.round(r.amount / 2);
+        changed = true;
+      }
+      if (typeof r.g2 !== "number") {
+        r.g2 = r.amount - r.g1; // keep the combined total exact
+        changed = true;
+      }
+    }
+    if (changed) console.log("[store] migrated revenue to per-branch splits (g1/g2)");
   }
 
   save() {

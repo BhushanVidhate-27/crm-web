@@ -17,7 +17,7 @@ export type Member = {
 };
 
 export type Checkin = { id: string; memberId: string; gymId: string; date: string; time: string };
-export type RevenuePoint = { month: string; amount: number };
+export type RevenuePoint = { month: string; amount: number; g1: number; g2: number };
 export type Channel = "email" | "whatsapp";
 export type Notification = {
   id: string;
@@ -171,15 +171,16 @@ export function buildSeed(): DB {
   }
   const finalCheckins = [...dedup.values()];
 
+  /* Per-branch monthly collections: g1 = Jatra Hotel, g2 = Adgaon, amount = combined. */
   const revenue: RevenuePoint[] = [
-    { month: "Jan", amount: 82000 },
-    { month: "Feb", amount: 91500 },
-    { month: "Mar", amount: 108000 },
-    { month: "Apr", amount: 96200 },
-    { month: "May", amount: 115400 },
-    { month: "Jun", amount: 127600 },
-    { month: "Jul", amount: 121900 },
-    { month: "Aug", amount: 139200 },
+    { month: "Jan", amount: 82000, g1: 49000, g2: 33000 },
+    { month: "Feb", amount: 91500, g1: 53000, g2: 38500 },
+    { month: "Mar", amount: 108000, g1: 64000, g2: 44000 },
+    { month: "Apr", amount: 96200, g1: 55200, g2: 41000 },
+    { month: "May", amount: 115400, g1: 68900, g2: 46500 },
+    { month: "Jun", amount: 127600, g1: 74100, g2: 53500 },
+    { month: "Jul", amount: 121900, g1: 69900, g2: 52000 },
+    { month: "Aug", amount: 139200, g1: 81200, g2: 58000 },
   ];
 
   return { gyms, members, checkins: finalCheckins, revenue, notifications: [] };

@@ -13,12 +13,11 @@ import { CheckinButton } from "./CheckinButton";
 
 export function MembersGrid({ members, gyms }: { members: Member[]; gyms: Gym[] }) {
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "expiring" | "expired">("all");
+  const [gymFilter, setGymFilter] = useState<string>("all");
 
   const q = query.trim().toLowerCase();
   const rows = members.filter((m) => {
-    const status = memberStatus(m.endDate);
-    if (statusFilter !== "all" && status !== statusFilter) return false;
+    if (gymFilter !== "all" && m.gymId !== gymFilter) return false;
     if (q && !(m.name.toLowerCase().includes(q) || m.phone.includes(q) || m.email.toLowerCase().includes(q)))
       return false;
     return true;
@@ -43,25 +42,43 @@ export function MembersGrid({ members, gyms }: { members: Member[]; gyms: Gym[] 
         </div>
 
         <div className="flex gap-1.5 rounded-xl bg-neutral-100 p-1">
-          {[
-            ["all", "All"],
-            ["active", "Active"],
-            ["expiring", "Expiring"],
-            ["expired", "Expired"],
-          ].map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setStatusFilter(key as "all" | "active" | "expiring" | "expired")}
-              className={`rounded-lg px-3 py-1.5 text-[12px] font-semibold transition-colors ${
-                statusFilter === key ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-800"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+          <button
+            onClick={() => setGymFilter("all")}
+            className={`rounded-lg px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+              gymFilter === "all" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-800"
+            }`}
+          >
+            All branches
+          </button>
+          {gyms.map((g) => {
+            const count = members.filter((m) => m.gymId === g.id).length;
+            return (
+              <button
+                key={g.id}
+                onClick={() => setGymFilter(gymFilter === g.id ? "all" : g.id)}
+                title={`${g.name} — ${g.location}`}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+                  gymFilter === g.id ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-800"
+                }`}
+              >
+                <span
+                  className={`grid h-4.5 w-4.5 min-w-4.5 place-items-center rounded text-[9px] font-bold ${
+                    gymFilter === g.id ? "bg-indigo-600 text-white" : "bg-neutral-200 text-neutral-500"
+                  }`}
+                >
+                  {g.initials}
+                </span>
+                {g.name}
+                <span className="text-[10px] font-medium text-neutral-400">{count}</span>
+              </button>
+            );
+          })}
         </div>
 
-        <span className="ml-auto text-[13px] font-medium text-neutral-400">{rows.length} members</span>
+        <span className="ml-auto text-[13px] font-medium text-neutral-400">
+          {rows.length} member{rows.length !== 1 ? "s" : ""}
+          {gymFilter !== "all" && ` · ${gymName(gymFilter)}`}
+        </span>
       </div>
 
       {/* Table */}
