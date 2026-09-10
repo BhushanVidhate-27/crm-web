@@ -11,6 +11,7 @@ const NAV = [
   { href: "/qr-codes", label: "Gym QR", icon: "qr" },
   { href: "/reports", label: "Owner Intel", icon: "chart" },
   { href: "/billing", label: "Billing", icon: "card" },
+  { href: "/notifications", label: "Gym Pass Alerts", icon: "bell" },
 ];
 
 const ICONS: Record<string, React.ReactNode> = {
@@ -41,6 +42,12 @@ const ICONS: Record<string, React.ReactNode> = {
       <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" /><rect x="13.5" y="3.5" width="7" height="7" rx="1.5" />
       <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" />
       <path d="M14 14h3v3h-3zM20.5 14v.01M20.5 17.5v3M14 20.5v.01M17.5 20.5h.01" />
+    </svg>
+  ),
+  bell: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-[18px] w-[18px]">
+      <path d="M18 10a6 6 0 1 0-12 0c0 5-2 6-2 6h16s-2-1-2-6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10.3 20a2 2 0 0 0 3.4 0" strokeLinecap="round" />
     </svg>
   ),
 };

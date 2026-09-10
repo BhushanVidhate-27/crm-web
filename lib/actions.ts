@@ -24,6 +24,7 @@ export async function checkIn(formData: FormData): Promise<ActionResult> {
   revalidatePath("/");
   revalidatePath("/dashboard");
   revalidatePath("/members");
+  revalidatePath("/notifications");
   return res;
 }
 
@@ -103,6 +104,7 @@ export async function sendReminders(): Promise<ActionResult> {
   revalidatePath("/billing");
   revalidatePath("/dashboard");
   revalidatePath("/reports");
+  revalidatePath("/notifications");
 
   const message =
     sent > 0
@@ -152,6 +154,7 @@ export async function qrIdentify(_prev: QrResult | null, formData: FormData): Pr
   revalidatePath("/dashboard");
   revalidatePath("/members");
   revalidatePath("/reports");
+  revalidatePath("/notifications");
   return { done: res.message, name: match.name };
 }
 
@@ -164,6 +167,7 @@ export async function qrWelcomeBackCheckin(_prev: QrResult | null, formData: For
   const res = store.checkIn(member.id, qr?.gymId);
   revalidatePath("/dashboard");
   revalidatePath("/members");
+  revalidatePath("/notifications");
   return { done: res.message, name: member.name };
 }
 
