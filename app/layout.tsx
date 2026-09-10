@@ -9,7 +9,7 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "GymOS — Multi-gym management",
+  title: "MadabolicX — Multi-gym management",
   description: "Owner console to run every branch from one place.",
 };
 

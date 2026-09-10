@@ -65,7 +65,7 @@ export function Sidebar({ gyms, activeGymId }: { gyms: Gym[]; activeGymId: strin
           G
         </div>
         <div className="leading-tight">
-          <p className="text-[15px] font-semibold tracking-tight text-neutral-900">GymOS</p>
+          <p className="text-[15px] font-semibold tracking-tight text-neutral-900">MadabolicX</p>
           <p className="text-[11px] text-neutral-500">Owner console</p>
         </div>
       </div>

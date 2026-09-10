@@ -1,4 +1,4 @@
-# GymOS - Multi-gym owner console (prototype)
+# MadabolicX - Multi-gym owner console (prototype)
 
 A polished prototype CRM that runs **every gym branch from one place** and turns the
 numbers into owner value: cash visibility, churn warnings and cross-branch comparison.

@@ -1,4 +1,4 @@
-/* Types, date helpers and seed data for GymOS. */
+/* Types, date helpers and seed data for MadabolicX. */
 
 export type Gym = { id: string; name: string; location: string; initials: string; capacity: number };
 export type MemberStatus = "active" | "expiring" | "expired";
@@ -105,8 +105,8 @@ export function generateMemberId(existingIds: string[]): string {
 
 export function buildSeed(): DB {
   const gyms: Gym[] = [
-    { id: "g1", name: "Iron Forge", location: "Indiranagar, Bengaluru", initials: "IF", capacity: 120 },
-    { id: "g2", name: "Lift Lab", location: "Bandra West, Mumbai", initials: "LL", capacity: 90 },
+    { id: "g1", name: "Jatra Hotel", location: "Indiranagar, Bengaluru", initials: "JH", capacity: 120 },
+    { id: "g2", name: "Adgaon", location: "Bandra West, Mumbai", initials: "AD", capacity: 90 },
   ];
 
   const members: Member[] = [
