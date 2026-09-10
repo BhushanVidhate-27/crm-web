@@ -70,6 +70,7 @@ export function MembersGrid({ members, gyms }: { members: Member[]; gyms: Gym[] 
           <thead>
             <tr className="border-b border-black/[0.06] bg-neutral-50/70">
               <th className="px-4 py-2.5 font-medium text-neutral-500">Member</th>
+              <th className="px-4 py-2.5 font-medium text-neutral-500">Member ID</th>
               <th className="px-4 py-2.5 font-medium text-neutral-500">Gym</th>
               <th className="px-4 py-2.5 font-medium text-neutral-500">Plan</th>
               <th className="px-4 py-2.5 text-right font-medium text-neutral-500">Fee</th>
@@ -90,6 +91,11 @@ export function MembersGrid({ members, gyms }: { members: Member[]; gyms: Gym[] 
                         <p className="truncate text-[11px] text-neutral-400">{m.phone}</p>
                       </div>
                     </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="rounded-md bg-neutral-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold tracking-wider text-neutral-600">
+                      {m.id}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-neutral-600">{gymName(m.gymId)}</td>
                   <td className="px-4 py-3 text-neutral-700">
@@ -112,7 +118,7 @@ export function MembersGrid({ members, gyms }: { members: Member[]; gyms: Gym[] 
             })}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-[13px] text-neutral-400">
+                <td colSpan={7} className="px-4 py-12 text-center text-[13px] text-neutral-400">
                   No members match your search.
                 </td>
               </tr>

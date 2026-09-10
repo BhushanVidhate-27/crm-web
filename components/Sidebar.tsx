@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { setActiveGym } from "@/lib/actions";
 import { type Gym } from "@/lib/store";
 
 const NAV = [
@@ -44,8 +45,18 @@ const ICONS: Record<string, React.ReactNode> = {
   ),
 };
 
-export function Sidebar({ gyms }: { gyms: Gym[] }) {
+export function Sidebar({ gyms, activeGymId }: { gyms: Gym[]; activeGymId: string | null }) {
   const pathname = usePathname();
+
+  /* Only the dashboard consumes the active gym, so only highlight there. */
+  const gymItemClass = (active: boolean) =>
+    `flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors duration-150 cursor-pointer ${
+      active
+        ? "border-indigo-600/20 bg-indigo-50"
+        : "border-black/[0.05] bg-white hover:border-black/[0.1] hover:bg-neutral-50"
+    }`;
+  const isGymActive = (id: string) => pathname === "/dashboard" && activeGymId === id;
+  const isAllActive = pathname === "/dashboard" && !activeGymId;
 
   return (
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-black/[0.06] bg-white/80 px-4 py-6 backdrop-blur md:flex">
@@ -84,20 +95,43 @@ export function Sidebar({ gyms }: { gyms: Gym[] }) {
       <div className="mt-auto">
         <p className="mb-2 px-2 text-[11px] font-medium uppercase tracking-wide text-neutral-400">Your gyms</p>
         <div className="flex flex-col gap-1.5">
-          {gyms.map((g) => (
-            <div
-              key={g.id}
-              className="flex items-center gap-3 rounded-xl border border-black/[0.05] bg-white px-3 py-2.5"
-            >
-              <div className="grid h-8 w-8 place-items-center rounded-lg bg-neutral-100 text-[11px] font-bold text-neutral-600">
-                {g.initials}
+          <form action={setActiveGym}>
+            <input type="hidden" name="gymId" value="" />
+            <button type="submit" className={gymItemClass(isAllActive)}>
+              <div
+                className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${
+                  isAllActive ? "bg-indigo-600 text-white" : "bg-neutral-100 text-neutral-500"
+                }`}
+              >
+                {ICONS.grid}
               </div>
               <div className="min-w-0 leading-tight">
-                <p className="truncate text-[13px] font-semibold text-neutral-800">{g.name}</p>
-                <p className="truncate text-[11px] text-neutral-400">{g.location}</p>
+                <p className="truncate text-[13px] font-semibold text-neutral-800">All branches</p>
+                <p className="truncate text-[11px] text-neutral-400">across every gym</p>
               </div>
-            </div>
-          ))}
+            </button>
+          </form>
+          {gyms.map((g) => {
+            const active = isGymActive(g.id);
+            return (
+              <form key={g.id} action={setActiveGym}>
+                <input type="hidden" name="gymId" value={g.id} />
+                <button type="submit" className={gymItemClass(active)}>
+                  <div
+                    className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[11px] font-bold ${
+                      active ? "bg-indigo-600 text-white" : "bg-neutral-100 text-neutral-600"
+                    }`}
+                  >
+                    {g.initials}
+                  </div>
+                  <div className="min-w-0 leading-tight">
+                    <p className="truncate text-[13px] font-semibold text-neutral-800">{g.name}</p>
+                    <p className="truncate text-[11px] text-neutral-400">{g.location}</p>
+                  </div>
+                </button>
+              </form>
+            );
+          })}
         </div>
       </div>
     </aside>

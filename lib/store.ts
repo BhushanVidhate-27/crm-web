@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { buildSeed, toISODate, memberStatus, type DB, type Member, type Channel, type Notification } from "./seed";
+import { buildSeed, toISODate, memberStatus, generateMemberId, type DB, type Member, type Channel, type Notification } from "./seed";
 
 export * from "./seed";
 
@@ -69,9 +69,10 @@ class Store {
   }
 
   addMember(input: Omit<Member, "id">): { ok: boolean; message: string } {
-    this.db.members.push({ ...input, id: `m${Date.now()}` });
+    const id = generateMemberId(this.db.members.map((m) => m.id));
+    this.db.members.push({ ...input, id });
     this.save();
-    return { ok: true, message: `${input.name} added as a member.` };
+    return { ok: true, message: `${input.name} added as a member. Member ID: ${id}` };
   }
 
   renew(memberId: string, months: number): { ok: boolean; message: string } {

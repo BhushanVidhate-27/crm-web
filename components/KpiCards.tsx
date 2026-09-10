@@ -8,6 +8,7 @@ export function KpiCards({
   checkinsToday,
   lastRevenue,
   totalMembers,
+  scopeLabel = "across branches",
 }: {
   active: number;
   expiring: number;
@@ -15,6 +16,7 @@ export function KpiCards({
   checkinsToday: number;
   lastRevenue: number;
   totalMembers: number;
+  scopeLabel?: string;
 }) {
   return (
     <section className="grid grid-cols-2 gap-4 xl:grid-cols-4">
@@ -22,7 +24,7 @@ export function KpiCards({
         index={0}
         label="Active members"
         value={String(active)}
-        hint={`${totalMembers} total across branches`}
+        hint={`${totalMembers} total ${scopeLabel}`}
         tone="indigo"
         icon={
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">

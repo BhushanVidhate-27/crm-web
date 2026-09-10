@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { store, memberStatus, daysUntil, toISODate, daysFromToday, type Channel } from "./store";
+import { store, memberStatus, type Channel } from "./store";
 import { parseQrCode } from "./qr";
 import {
   buildEmail,
@@ -113,8 +113,9 @@ export async function sendReminders(): Promise<ActionResult> {
 
 /* ------------------------------------------------------------------ */
 /*  QR self check-in flow                                              */
-/*  Scan gym QR -> enter phone -> recognized: instant check-in.        */
-/*  Unknown phone: registration form, then checked in automatically.   */
+/*  Scan gym QR -> enter member ID -> recognized: instant check-in.    */
+/*  The ID is issued by the admin on the main site; first check-in     */
+/*  stores the member in a cookie so every scan after is one tap.      */
 /* ------------------------------------------------------------------ */
 
 const MEMBER_COOKIE = "gymos_member";
@@ -131,89 +132,67 @@ async function rememberedMember(): Promise<Member | null> {
   return store.members().find((m) => m.id === id) ?? null;
 }
 
-export async function qrIdentify(formData: FormData): Promise<void> {
+export type QrResult = { err?: string; done?: string; name?: string };
+
+/* useActionState signature: (previousState, formData) => result.          */
+/* The page renders the result from state instead of URL query params.      */
+export async function qrIdentify(_prev: QrResult | null, formData: FormData): Promise<QrResult> {
   const code = String(formData.get("code") ?? "");
-  const rawPhone = String(formData.get("phone") ?? "").replace(/\D/g, "").slice(-10);
+  const memberId = String(formData.get("memberId") ?? "").trim();
 
-  if (rawPhone.length !== 10) {
-    redirect(`/qr/${code}?err=${encodeURIComponent("Enter a valid 10-digit phone number.")}`);
-  }
+  if (!memberId) return { err: "Enter your member ID." };
 
-  const match = store.members().find((m) => m.phone.replace(/\D/g, "").endsWith(rawPhone));
-  if (!match) {
-    redirect(`/qr/${code}?step=register&phone=${encodeURIComponent(rawPhone)}`);
-  }
+  const match = store.members().find((m) => m.id.toLowerCase() === memberId.toLowerCase());
+  if (!match) return { err: "No member found with that ID — ask the front desk for help." };
 
   const qr = parseQrCode(code);
   const res = store.checkIn(match.id, qr?.gymId);
+  if (!res.ok) return { err: res.message };
   await rememberMember(match.id);
   revalidatePath("/dashboard");
   revalidatePath("/members");
   revalidatePath("/reports");
-  redirect(`/qr/${code}?done=${encodeURIComponent(res.message)}&name=${encodeURIComponent(match.name)}`);
+  return { done: res.message, name: match.name };
 }
 
-export async function qrRegister(formData: FormData): Promise<void> {
-  const code = String(formData.get("code") ?? "");
-  const qr = parseQrCode(code);
-  const gymId = qr?.gymId ?? "g1";
-
-  const name = String(formData.get("name") ?? "").trim();
-  const phoneRaw = String(formData.get("phone") ?? "").replace(/\D/g, "").slice(-10);
-  const email = String(formData.get("email") ?? "").trim();
-  const plan = String(formData.get("plan") ?? "Monthly");
-
-  if (!name) redirect(`/qr/${code}?step=register&err=${encodeURIComponent("Name is required.")}`);
-  if (phoneRaw.length !== 10) redirect(`/qr/${code}?step=register&err=${encodeURIComponent("Valid 10-digit phone is required.")}`);
-
-  /* Plan pricing mirror of the owner's rate card. */
-  const PLANS: Record<string, { price: number; months: number }> = {
-    Monthly: { price: 2500, months: 1 },
-    Quarterly: { price: 6000, months: 3 },
-    "Half-Yearly": { price: 12000, months: 6 },
-    Yearly: { price: 24000, months: 12 },
-  };
-  const chosen = PLANS[plan] ?? PLANS.Monthly;
-
-  const res = store.addMember({
-    gymId,
-    name,
-    phone: `+91 ${phoneRaw.slice(0, 5)} ${phoneRaw.slice(5)}`,
-    email,
-    plan,
-    price: chosen.price,
-    startDate: toISODate(new Date()),
-    endDate: daysFromToday(chosen.months * 30),
-    imageHue: Math.floor(Math.random() * 360),
-  });
-  if (!res.ok) redirect(`/qr/${code}?step=register&err=${encodeURIComponent(res.message)}`);
-
-  const created = store.members().find((m) => m.name === name && m.phone.endsWith(phoneRaw));
-  if (created) {
-    store.checkIn(created.id, gymId);
-    await rememberMember(created.id);
-  }
-
-  revalidatePath("/dashboard");
-  revalidatePath("/members");
-  revalidatePath("/reports");
-  revalidatePath("/billing");
-  redirect(`/qr/${code}?done=${encodeURIComponent(`Welcome to the gym, ${name}! You're checked in.`)}&name=${encodeURIComponent(name)}&new=1`);
-}
-
-export async function qrWelcomeBackCheckin(formData: FormData): Promise<void> {
+export async function qrWelcomeBackCheckin(_prev: QrResult | null, formData: FormData): Promise<QrResult> {
   const code = String(formData.get("code") ?? "");
   const qr = parseQrCode(code);
   const member = await rememberedMember();
-  if (!member) redirect(`/qr/${code}`);
+  if (!member) return { err: "Session expired — enter your member ID to check in." };
 
   const res = store.checkIn(member.id, qr?.gymId);
   revalidatePath("/dashboard");
   revalidatePath("/members");
-  redirect(`/qr/${code}?done=${encodeURIComponent(res.message)}&name=${encodeURIComponent(member.name)}`);
+  return { done: res.message, name: member.name };
 }
 
 /* Exported for the scan page's welcome-back card. */
 export async function getRememberedMember(): Promise<Member | null> {
   return rememberedMember();
+}
+
+/* ------------------------------------------------------------------ */
+/*  Active gym selection (persisted in a cookie, not the URL)          */
+/* ------------------------------------------------------------------ */
+
+const ACTIVE_GYM_COOKIE = "gymos_gym";
+
+export async function setActiveGym(formData: FormData): Promise<void> {
+  const gymId = String(formData.get("gymId") ?? "").trim();
+  const jar = await cookies();
+
+  if (gymId && store.gyms().some((g) => g.id === gymId)) {
+    jar.set(ACTIVE_GYM_COOKIE, gymId, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365, // 1 year
+    });
+  } else {
+    jar.delete(ACTIVE_GYM_COOKIE); // empty gymId -> back to all branches
+  }
+
+  revalidatePath("/dashboard");
+  redirect("/dashboard");
 }
