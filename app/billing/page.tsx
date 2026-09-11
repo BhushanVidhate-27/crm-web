@@ -1,8 +1,6 @@
 import { store, memberStatus, daysUntil, toISODate, formatINR, formatDate } from "@/lib/store";
 import { MemberAvatar } from "@/components/Badge";
 import { RenewButton } from "@/components/RenewButton";
-import { ReminderPanel } from "@/components/ReminderPanel";
-import { NotificationLog } from "@/components/NotificationLog";
 
 export const dynamic = "force-dynamic";
 
@@ -84,11 +82,6 @@ export default function BillingPage() {
           })
         )}
       </div>
-
-      <section className="mt-6 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-        <ReminderPanel />
-        <NotificationLog />
-      </section>
     </div>
   );
 }

@@ -15,15 +15,48 @@ import {
   REMINDER_INTERVAL_DAYS,
 } from "./notify";
 import type { Member } from "./seed";
+import { saveMedia, deleteMedia, mediaMaxBytes, mediaMaxLabel } from "./media-files";
 
 export type ActionResult = { ok: boolean; message: string };
+
+export async function addMemory(formData: FormData): Promise<ActionResult> {
+  const caption = String(formData.get("caption") ?? "").trim();
+  const tag = String(formData.get("tag") ?? "Events").trim();
+  const photo = formData.get("photo");
+
+  if (!(photo instanceof File) || photo.size === 0)
+    return { ok: false, message: "Pick a photo to add to memories." };
+  if (!photo.type.startsWith("image/")) return { ok: false, message: "Only images are allowed." };
+  if (photo.size > mediaMaxBytes())
+    return { ok: false, message: `Too large — keep photos under ${mediaMaxLabel()}.` };
+
+  const { file } = await saveMedia(Buffer.from(await photo.arrayBuffer()), photo.type);
+
+  store.addMemory({
+    file,
+    caption: caption || "A good day at the gym",
+    tag,
+    createdAt: new Date().toISOString(),
+  });
+  revalidatePath("/memories");
+  return { ok: true, message: "Saved to the vault. The good times live here now!" };
+}
+
+export async function deleteMemory(formData: FormData): Promise<ActionResult> {
+  const mem = store.memory(String(formData.get("id") ?? ""));
+  if (!mem) return { ok: false, message: "Memory not found." };
+  store.removeMemory(mem.id);
+  await deleteMedia(mem.file);
+  revalidatePath("/memories");
+  return { ok: true, message: "Memory deleted." };
+}
 
 export async function checkIn(formData: FormData): Promise<ActionResult> {
   const memberId = String(formData.get("memberId") ?? "");
   const res = store.checkIn(memberId);
   revalidatePath("/");
   revalidatePath("/dashboard");
-  revalidatePath("/members");
+  revalidatePath("/members", "layout"); // includes /members/[id] profile
   revalidatePath("/notifications");
   return res;
 }
@@ -34,6 +67,7 @@ export async function addMember(formData: FormData): Promise<ActionResult> {
     name: String(formData.get("name") ?? "").trim(),
     phone: String(formData.get("phone") ?? "").trim(),
     email: String(formData.get("email") ?? "").trim(),
+    address: String(formData.get("address") ?? "").trim(),
     plan: String(formData.get("plan") ?? "Monthly"),
     price: Number(formData.get("price") ?? 0),
     startDate: String(formData.get("startDate") ?? ""),
@@ -47,7 +81,7 @@ export async function addMember(formData: FormData): Promise<ActionResult> {
   const res = store.addMember(member);
   revalidatePath("/");
   revalidatePath("/dashboard");
-  revalidatePath("/members");
+  revalidatePath("/members", "layout"); // includes /members/[id] profile
   return res;
 }
 
@@ -57,7 +91,7 @@ export async function renewMember(formData: FormData): Promise<ActionResult> {
   const res = store.renew(memberId, months);
   revalidatePath("/");
   revalidatePath("/dashboard");
-  revalidatePath("/members");
+  revalidatePath("/members", "layout"); // includes /members/[id] profile
   return res;
 }
 
@@ -152,7 +186,7 @@ export async function qrIdentify(_prev: QrResult | null, formData: FormData): Pr
   if (!res.ok) return { err: res.message };
   await rememberMember(match.id);
   revalidatePath("/dashboard");
-  revalidatePath("/members");
+  revalidatePath("/members", "layout"); // includes /members/[id] profile
   revalidatePath("/reports");
   revalidatePath("/notifications");
   return { done: res.message, name: match.name };
@@ -166,7 +200,7 @@ export async function qrWelcomeBackCheckin(_prev: QrResult | null, formData: For
 
   const res = store.checkIn(member.id, qr?.gymId);
   revalidatePath("/dashboard");
-  revalidatePath("/members");
+  revalidatePath("/members", "layout"); // includes /members/[id] profile
   revalidatePath("/notifications");
   return { done: res.message, name: member.name };
 }

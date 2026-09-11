@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   formatINR,
   formatDate,
@@ -101,13 +102,28 @@ export function MembersGrid({ members, gyms }: { members: Member[]; gyms: Gym[] 
               return (
                 <tr key={m.id} className="animate-rise transition-colors hover:bg-neutral-50/60" style={{ animationDelay: `${i * 30}ms` }}>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
+                    <Link
+                      href={`/members/${m.id}`}
+                      title={`View ${m.name}'s profile`}
+                      className="group flex items-center gap-3 rounded-lg transition-colors"
+                    >
                       <MemberAvatar name={m.name} hue={m.imageHue} size={34} />
                       <div className="min-w-0 leading-tight">
-                        <p className="truncate font-semibold text-neutral-900">{m.name}</p>
+                        <p className="truncate font-semibold text-neutral-900 transition-colors group-hover:text-indigo-700">
+                          {m.name}
+                        </p>
                         <p className="truncate text-[11px] text-neutral-400">{m.phone}</p>
                       </div>
-                    </div>
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        className="h-3.5 w-3.5 shrink-0 text-neutral-300 transition-colors group-hover:text-indigo-500"
+                      >
+                        <path d="m9 5 6.5 7L9 19" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </Link>
                   </td>
                   <td className="px-4 py-3">
                     <span className="rounded-md bg-neutral-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold tracking-wider text-neutral-600">

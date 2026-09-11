@@ -12,6 +12,7 @@ const NAV = [
   { href: "/reports", label: "Revenue Statistics", icon: "chart" },
   { href: "/billing", label: "Billing", icon: "card" },
   { href: "/notifications", label: "Gym Pass Alerts", icon: "bell" },
+  { href: "/memories", label: "Memories", icon: "camera" },
 ];
 
 const ICONS: Record<string, React.ReactNode> = {
@@ -48,6 +49,12 @@ const ICONS: Record<string, React.ReactNode> = {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-[18px] w-[18px]">
       <path d="M18 10a6 6 0 1 0-12 0c0 5-2 6-2 6h16s-2-1-2-6" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M10.3 20a2 2 0 0 0 3.4 0" strokeLinecap="round" />
+    </svg>
+  ),
+  camera: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-[18px] w-[18px]">
+      <path d="M4 8.5h3.2l1.7-2.3A1.8 1.8 0 0 1 10.5 5.5h3a1.8 1.8 0 0 1 1.6.7l1.7 2.3H20a1.5 1.5 0 0 1 1.5 1.5v8.5a1.5 1.5 0 0 1-1.5-1.5H4a1.5 1.5 0 0 1-1.5-1.5V10A1.5 1.5 0 0 1 4 8.5Z" />
+      <circle cx="12" cy="13.5" r="3.3" />
     </svg>
   ),
 };

@@ -4,6 +4,7 @@ import { StatCard } from "@/components/StatCard";
 import { MemberAvatar } from "@/components/Badge";
 import { SendRemindersButton } from "@/components/SendRemindersButton";
 import { PassActivityFeed } from "@/components/PassActivityFeed";
+import { NotificationLog } from "@/components/NotificationLog";
 
 export const dynamic = "force-dynamic";
 
@@ -180,6 +181,10 @@ export default function NotificationsPage() {
 
         {/* --- Recent activity: check-ins + alerts sent --- */}
         <PassActivityFeed items={activity} />
+      </div>
+
+      <div className="mt-5">
+        <NotificationLog />
       </div>
     </div>
   );

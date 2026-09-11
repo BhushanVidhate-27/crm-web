@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Nested duplicate of this repo (accidental copy), not part of the app:
+    "crm-web/**",
   ]),
 ]);
 

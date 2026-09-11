@@ -25,6 +25,8 @@ export default async function DashboardPage() {
     ? store.checkinsToday().filter((c) => c.gymId === selectedGym.id)
     : store.checkinsToday();
   const revenue = store.revenue();
+  const currentYear = new Date().getFullYear();
+  const revenueThisYear = revenue.filter((r) => r.year === currentYear);
   const scopedGyms = selectedGym ? [selectedGym] : gyms;
 
   const active = members.filter((m) => memberStatus(m.endDate) === "active");
@@ -92,7 +94,7 @@ export default async function DashboardPage() {
       </div>
 
       <section className="mt-5 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-        <RevenueChart data={revenue} />
+        <RevenueChart data={revenueThisYear} />
         <NowInGym members={members} checkinsToday={checkinsToday} />
       </section>
 

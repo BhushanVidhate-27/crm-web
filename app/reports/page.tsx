@@ -23,16 +23,17 @@ export default function ReportsPage() {
   const atRisk = computeAtRisk(members, checkins);
   const expiredCount = members.filter((m) => memberStatus(m.endDate) === "expired").length;
 
-  /* --- Past income: monthly + yearly ----------------------------------- */
+  /* --- Past income: monthly + yearly (scoped to this year; past years live in the chart's sliding list) --- */
   const thisYear = new Date().getFullYear();
-  const yearTotal = revenue.reduce((s, r) => s + r.amount, 0);
-  const bestMonth = revenue.reduce<null | (typeof revenue)[number]>(
+  const yearPoints = revenue.filter((r) => r.year === thisYear);
+  const yearTotal = yearPoints.reduce((s, r) => s + r.amount, 0);
+  const bestMonth = yearPoints.reduce<null | (typeof yearPoints)[number]>(
     (best, r) => (!best || r.amount > best.amount ? r : best),
     null
   );
-  const avgMonth = revenue.length ? Math.round(yearTotal / revenue.length) : 0;
-  const lastMonth = revenue.length >= 2 ? revenue[revenue.length - 2].amount : null;
-  const thisMonth = revenue.length ? revenue[revenue.length - 1].amount : 0;
+  const avgMonth = yearPoints.length ? Math.round(yearTotal / yearPoints.length) : 0;
+  const lastMonth = yearPoints.length >= 2 ? yearPoints[yearPoints.length - 2].amount : null;
+  const thisMonth = yearPoints.length ? yearPoints[yearPoints.length - 1].amount : 0;
   const momGrowth = lastMonth && lastMonth > 0 ? ((thisMonth - lastMonth) / lastMonth) * 100 : null;
 
   return (
@@ -99,7 +100,7 @@ export default function ReportsPage() {
       <section className="mt-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
         <StatCard
           index={0}
-          label={`Income · ${revenue[revenue.length - 1]?.month ?? "this month"}`}
+          label={`Income · ${yearPoints[yearPoints.length - 1]?.month ?? "this month"}`}
           value={formatINR(thisMonth)}
           hint={momGrowth === null ? "collection so far" : `${momGrowth >= 0 ? "+" : ""}${momGrowth.toFixed(1)}% vs last month`}
           tone={momGrowth !== null && momGrowth < 0 ? "rose" : "green"}
@@ -113,7 +114,7 @@ export default function ReportsPage() {
           index={1}
           label="Average monthly income"
           value={formatINR(avgMonth)}
-          hint={`across ${revenue.length} tracked months`}
+          hint={`across ${yearPoints.length} months this year`}
           tone="indigo"
           icon={
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
@@ -135,7 +136,7 @@ export default function ReportsPage() {
         />
         <StatCard
           index={3}
-          label={`Total income · ${thisYear}`}
+          label={`Yearly income · ${thisYear}`}
           value={formatINR(yearTotal)}
           hint="all branches combined"
           tone="default"
@@ -147,9 +148,9 @@ export default function ReportsPage() {
         />
       </section>
 
-      {/* --- Yearly past income, per year + per branch --- */}
+      {/* --- Multi-year income: sliding year list + chart + monthly tiles --- */}
       <section className="mt-6">
-        <YearlyIncomeChart revenue={revenue} year={thisYear} />
+        <YearlyIncomeChart revenue={revenue} />
       </section>
 
       <section className="mt-6 grid gap-6 lg:grid-cols-[1.5fr_1fr]">

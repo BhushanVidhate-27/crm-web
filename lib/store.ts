@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { buildSeed, toISODate, memberStatus, generateMemberId, type DB, type Member, type Channel, type Notification } from "./seed";
+import { buildSeed, buildRevenueHistory, toISODate, memberStatus, generateMemberId, type DB, type Member, type Memory, type Channel, type Notification } from "./seed";
 
 export * from "./seed";
 
@@ -25,16 +25,43 @@ class Store {
     ensureFile();
     this.db = JSON.parse(fs.readFileSync(DB_PATH, "utf-8")) as DB;
     if (!Array.isArray(this.db.notifications)) this.db.notifications = []; // migration for pre-notification data files
-    this.migrateRevenue(); // migration for pre-branch-split revenue data files
+    if (!Array.isArray(this.db.memories)) this.db.memories = []; // migration for pre-memories data files
+    this.migrateRevenue(); // migration for pre-branch-split / single-year revenue data files
+    this.migrateMembers(); // migration for members without an address
     this.save();
   }
 
-  /* Older data files have revenue points without per-branch g1/g2 splits.
-     Backfill them (evenly) so branch-scoped charts always have numbers. */
+  /* Older data files have members without a living address. Backfill from the
+     seed (for known demo members) or empty so the profile never crashes. */
+  private migrateMembers() {
+    if (!Array.isArray(this.db.members)) return;
+    const seedAddress = new Map(buildSeed().members.map((m) => [m.id, m.address ?? ""]));
+    let changed = false;
+    for (const m of this.db.members) {
+      if (typeof m.address !== "string" || m.address === "") {
+        m.address = seedAddress.get(m.id) ?? "";
+        changed = true;
+      }
+    }
+    if (changed) console.log("[store] backfilled member addresses");
+  }
+
+  /* Older data files have revenue points without per-branch g1/g2 splits or a year.
+     Backfill them and expand the history so the yearly-income view can slide back
+     through past years. */
   private migrateRevenue() {
-    if (!Array.isArray(this.db.revenue)) return;
+    const currentYear = new Date().getFullYear();
+    if (!Array.isArray(this.db.revenue) || this.db.revenue.length === 0) {
+      this.db.revenue = buildRevenueHistory();
+      console.log("[store] seeded multi-year revenue history");
+      return;
+    }
     let changed = false;
     for (const r of this.db.revenue) {
+      if (typeof r.year !== "number") {
+        r.year = currentYear;
+        changed = true;
+      }
       if (typeof r.g1 !== "number") {
         r.g1 = Math.round(r.amount / 2);
         changed = true;
@@ -44,7 +71,12 @@ class Store {
         changed = true;
       }
     }
-    if (changed) console.log("[store] migrated revenue to per-branch splits (g1/g2)");
+    /* Single-year data files: prepend generated past years, ahead of the current year's points. */
+    if (!this.db.revenue.some((r) => r.year < currentYear)) {
+      this.db.revenue = [...buildRevenueHistory().filter((r) => r.year < currentYear), ...this.db.revenue];
+      changed = true;
+    }
+    if (changed) console.log("[store] migrated revenue to per-branch, multi-year history");
   }
 
   save() {
@@ -130,6 +162,27 @@ class Store {
 
   countReminders(memberId: string): number {
     return this.db.notifications.filter((n) => n.memberId === memberId).length;
+  }
+
+  /* --- memories --- */
+  memories() {
+    return [...this.db.memories].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+  memory(id: string): Memory | null {
+    return this.db.memories.find((m) => m.id === id) ?? null;
+  }
+  addMemory(input: Omit<Memory, "id">): Memory {
+    const rec: Memory = { ...input, id: `mv${Date.now()}${Math.random().toString(36).slice(2, 6)}` };
+    this.db.memories.push(rec);
+    this.save();
+    return rec;
+  }
+  removeMemory(id: string): boolean {
+    const i = this.db.memories.findIndex((m) => m.id === id);
+    if (i < 0) return false;
+    this.db.memories.splice(i, 1);
+    this.save();
+    return true;
   }
 }
 

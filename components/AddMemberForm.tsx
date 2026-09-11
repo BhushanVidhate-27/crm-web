@@ -125,6 +125,10 @@ export function AddMemberForm({ gyms }: { gyms: Gym[] }) {
               <label className="label">Email</label>
               <input name="email" type="email" className="field" placeholder="name@email.com" />
             </div>
+            <div className="sm:col-span-2">
+              <label className="label">Living address</label>
+              <input name="address" className="field" placeholder="e.g. 14, MG Road, Indiranagar, Bengaluru 560038" />
+            </div>
             <div>
               <label className="label">Plan</label>
               <select name="plan" className="field" defaultValue="Monthly">
